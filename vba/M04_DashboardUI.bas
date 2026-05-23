@@ -60,7 +60,14 @@ End Sub
 
 Public Sub RefreshDashboardMain()
     Dim ws As Worksheet
+    On Error Resume Next
     Set ws = ThisWorkbook.Worksheets(SHT_DASH)
+    On Error GoTo 0
+    If ws Is Nothing Then
+        ' Dashboard wasn't built yet - do a full build first
+        M01_Builder.BuildEnterpriseDashboard
+        Exit Sub
+    End If
     ' Repaint KPI cards by clearing+rebuilding shapes prefixed kpi_*
     DeleteShapesByPrefix ws, "kpi_"
     DeleteShapesByPrefix ws, "ai_"

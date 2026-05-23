@@ -146,8 +146,17 @@ Fail:
 End Sub
 
 ' Refresh path - re-imports CSV and rebuilds analytics & visuals without touching layout.
+' If the dashboard hasn't been built yet, it transparently runs a full build instead.
 Public Sub RefreshAll()
     On Error GoTo Fail
+
+    ' Auto-detect first run - if Dashboard_Main is missing, do a full build
+    If Not SheetExists(SHT_DASH) Then
+        LogInfo "REFRESH", "Dashboard_Main not found - running full build instead"
+        BuildEnterpriseDashboard
+        Exit Sub
+    End If
+
     PerfBegin
     LogInfo "REFRESH", "Refresh started"
 
@@ -166,7 +175,19 @@ Public Sub RefreshAll()
 Fail:
     PerfRestore
     LogError "REFRESH", Err.Number, Err.Description
+    MsgBox "Refresh failed: " & Err.Description & vbCrLf & vbCrLf & _
+           "Tip: run BuildEnterpriseDashboard from the macro list to rebuild from scratch.", _
+           vbExclamation, APP_SHORT
 End Sub
+
+' Helper - safely test if a sheet exists by name
+Public Function SheetExists(ByVal sheetName As String) As Boolean
+    Dim ws As Worksheet
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+    On Error GoTo 0
+    SheetExists = Not ws Is Nothing
+End Function
 
 '==============================================================================
 '                          PERFORMANCE / STATE HELPERS
@@ -197,36 +218,69 @@ End Sub
 '                              SHEET PROVISIONING
 '==============================================================================
 Private Sub ResetWorkbook()
-    Dim ws As Worksheet, keep As Worksheet
+    Dim i As Long, ws As Worksheet, keep As Worksheet
     Application.DisplayAlerts = False
-    ' Add a temp sheet so we can delete everything else
+    ' Make all sheets visible first - hidden sheets can't be the only sheet left
+    On Error Resume Next
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Visible = xlSheetVisible
+    Next ws
+    On Error GoTo 0
+
+    ' Add a temp sheet so we can delete everything else (workbook needs >=1 sheet)
     On Error Resume Next
     Set keep = ThisWorkbook.Worksheets.Add
     keep.Name = "__tmp_" & Format(Now, "hhnnss")
     On Error GoTo 0
-    For Each ws In ThisWorkbook.Worksheets
-        If Not ws Is keep Then ws.Delete
-    Next ws
+    If keep Is Nothing Then Set keep = ThisWorkbook.Worksheets(1)
+
+    ' Delete by reverse index - safer than For Each while mutating the collection
+    For i = ThisWorkbook.Worksheets.Count To 1 Step -1
+        Set ws = ThisWorkbook.Worksheets(i)
+        If ws.Name <> keep.Name Then
+            On Error Resume Next
+            ws.Delete
+            On Error GoTo 0
+        End If
+    Next i
     Application.DisplayAlerts = True
 End Sub
 
 Private Sub ProvisionSheets()
-    Dim names As Variant, i As Long, ws As Worksheet
+    Dim names As Variant, i As Long, ws As Worksheet, nm As String
     names = Array(SHT_HIDDEN, SHT_LOGS, SHT_SETTINGS, _
                   SHT_RAW, SHT_CLEAN, SHT_MODEL, SHT_KPI, _
                   SHT_RISK, SHT_FORECAST, SHT_RCA, SHT_APP, SHT_AGENT, _
                   SHT_INC, SHT_SLA, SHT_EXEC, SHT_DASH)
+
+    Application.DisplayAlerts = False
     ' Create in reverse so DASHBOARD ends up leftmost-visible
     For i = LBound(names) To UBound(names)
+        nm = CStr(names(i))
+        ' If a sheet with this name already exists, delete it first to avoid name clash
+        If SheetExists(nm) Then
+            On Error Resume Next
+            ThisWorkbook.Worksheets(nm).Delete
+            On Error GoTo 0
+        End If
         Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
-        ws.Name = CStr(names(i))
+        ws.Name = nm
+        On Error Resume Next
         ws.Tab.Color = CLR_PANEL
         ws.DisplayPageBreaks = False
+        On Error GoTo 0
     Next i
-    ' Drop the temp sheet
+
+    ' Drop any leftover temp sheets
     For i = ThisWorkbook.Worksheets.Count To 1 Step -1
-        If Left$(ThisWorkbook.Worksheets(i).Name, 6) = "__tmp_" Then ThisWorkbook.Worksheets(i).Delete
+        If Left$(ThisWorkbook.Worksheets(i).Name, 6) = "__tmp_" Then
+            On Error Resume Next
+            ThisWorkbook.Worksheets(i).Delete
+            On Error GoTo 0
+        End If
     Next i
+    Application.DisplayAlerts = True
+
     ' Reorder so DASHBOARD is first, hidden last
     On Error Resume Next
     Sheets(SHT_DASH).Move Before:=Sheets(1)
