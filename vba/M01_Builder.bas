@@ -324,30 +324,115 @@ End Sub
 '==============================================================================
 '                             FILE PATH RESOLVER
 '==============================================================================
-' Looks for Apps.csv next to the workbook, in the workbook folder, or one level up.
+' Bullet-proof CSV locator. Searches every plausible location, then falls back
+' to a file picker. Uses Application.GetOpenFilename (always available, no
+' Microsoft Office Object Library reference required - safer than FileDialog).
+'
+' Priority order (first match wins):
+'   1. Cached path stored on Hidden_Config sheet (after first successful find)
+'   2. Workbook folder
+'   3. Workbook folder \ data \
+'   4. Workbook folder \ ExcelDashbaord \    (when extracted from GitHub ZIP)
+'   5. Parent folder of workbook
+'   6. Current working directory (CurDir)
+'   7. User's Documents folder
+'   8. User's Desktop folder
+'   9. User's Downloads folder
+'  10. File picker prompt (last resort)
 Public Function ResolveCsvPath() As String
-    Dim base As String, candidates As Variant, i As Long, p As String
-    base = ThisWorkbook.Path
-    If Len(base) = 0 Then base = CurDir
-    candidates = Array( _
-        base & Application.PathSeparator & CSV_FILE_NAME, _
-        base & Application.PathSeparator & "data" & Application.PathSeparator & CSV_FILE_NAME, _
-        base & Application.PathSeparator & ".." & Application.PathSeparator & CSV_FILE_NAME)
-    For i = LBound(candidates) To UBound(candidates)
-        p = CStr(candidates(i))
-        If Dir(p) <> "" Then
-            ResolveCsvPath = p
+    On Error Resume Next   ' bullet-proof - swallow any path errors
+    Dim sep As String: sep = Application.PathSeparator
+    Dim base As String, p As String
+    Dim profile As String: profile = Environ$("USERPROFILE")
+
+    ' 0. Try cached path from Hidden_Config first
+    Dim cached As String: cached = GetCachedCsvPath()
+    If Len(cached) > 0 Then
+        If Dir(cached) <> "" Then
+            ResolveCsvPath = cached
             Exit Function
         End If
-    Next i
-    ' As a final fallback, prompt the user
-    Dim fd As FileDialog
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    With fd
-        .Title = "Select Apps.csv"
-        .Filters.Clear
-        .Filters.Add "CSV Files", "*.csv"
-        .AllowMultiSelect = False
-        If .Show = -1 Then ResolveCsvPath = .SelectedItems(1)
-    End With
+    End If
+
+    ' 1-5. Try workbook folder + variants
+    base = ThisWorkbook.Path
+    If Len(base) > 0 Then
+        p = base & sep & CSV_FILE_NAME
+        If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+
+        p = base & sep & "data" & sep & CSV_FILE_NAME
+        If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+
+        p = base & sep & "ExcelDashbaord" & sep & CSV_FILE_NAME
+        If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+
+        ' Parent folder - resolve ".." manually for old Excel safety
+        Dim parent As String
+        parent = ParentFolder(base)
+        If Len(parent) > 0 Then
+            p = parent & sep & CSV_FILE_NAME
+            If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+        End If
+    End If
+
+    ' 6. CurDir
+    p = CurDir & sep & CSV_FILE_NAME
+    If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+
+    ' 7-9. User profile common folders
+    If Len(profile) > 0 Then
+        p = profile & sep & "Documents" & sep & CSV_FILE_NAME
+        If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+
+        p = profile & sep & "Desktop" & sep & CSV_FILE_NAME
+        If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+
+        p = profile & sep & "Downloads" & sep & CSV_FILE_NAME
+        If Dir(p) <> "" Then ResolveCsvPath = p: SaveCachedCsvPath p: Exit Function
+    End If
+
+    ' 10. Last resort: file picker (uses GetOpenFilename - always available)
+    Dim picked As Variant
+    picked = Application.GetOpenFilename( _
+        FileFilter:="CSV files (*.csv),*.csv,All files (*.*),*.*", _
+        Title:="Select Apps.csv  -  not found automatically")
+    If VarType(picked) = vbString Then
+        If Len(CStr(picked)) > 0 Then
+            ResolveCsvPath = CStr(picked)
+            SaveCachedCsvPath CStr(picked)
+            Exit Function
+        End If
+    End If
+
+    ' Cancelled - return empty string. ImportCsv will raise a clear error.
+    ResolveCsvPath = ""
 End Function
+
+' Resolve parent folder of a path, handling trailing separators.
+Private Function ParentFolder(ByVal pth As String) As String
+    On Error Resume Next
+    Dim sep As String: sep = Application.PathSeparator
+    Dim p As String: p = pth
+    If Right$(p, 1) = sep Then p = Left$(p, Len(p) - 1)
+    Dim pos As Long: pos = InStrRev(p, sep)
+    If pos > 0 Then ParentFolder = Left$(p, pos - 1)
+End Function
+
+' Read cached CSV path from Hidden_Config sheet, cell B11
+Private Function GetCachedCsvPath() As String
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets(SHT_HIDDEN)
+    If ws Is Nothing Then Exit Function
+    GetCachedCsvPath = CStr(ws.Range("B11").Value)
+End Function
+
+' Persist successful CSV path so we don't re-search on every refresh
+Private Sub SaveCachedCsvPath(ByVal pth As String)
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets(SHT_HIDDEN)
+    If ws Is Nothing Then Exit Sub
+    ws.Range("A11").Value = "CachedCsvPath"
+    ws.Range("B11").Value = pth
+End Sub

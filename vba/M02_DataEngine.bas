@@ -63,7 +63,15 @@ Public Const CD_TOTAL_COLS        As Long = 45
 Public Sub ImportCsv()
     Dim path As String, ws As Worksheet
     path = ResolveCsvPath
-    If Len(path) = 0 Then Err.Raise 5001, , "Apps.csv not found and user cancelled file picker."
+    If Len(path) = 0 Then
+        Err.Raise 5001, "ImportCsv", _
+            "Apps.csv not found." & vbCrLf & vbCrLf & _
+            "Searched in:" & vbCrLf & _
+            "  - Workbook folder: " & ThisWorkbook.Path & vbCrLf & _
+            "  - Documents, Desktop, Downloads" & vbCrLf & vbCrLf & _
+            "Fix: Place Apps.csv in the same folder as this workbook " & _
+            "(" & ThisWorkbook.Path & ") and try again."
+    End If
     LogInfo "DATA", "Importing CSV from " & path
 
     Set ws = ThisWorkbook.Worksheets(SHT_RAW)
