@@ -5,21 +5,17 @@ Option Compare Text
 ' === TIOMP_Modules - Part of TIOMP Dashboard ===
 ' Imports: M06_Modules, M07_Interaction
 
+'==============================================================================
+' MODULE-LEVEL DECLARATIONS (must be at top)
+'==============================================================================
+
+
+'==============================================================================
+' PROCEDURES
+'==============================================================================
 
 '==============================================================================
 ' === SECTION: M06_Modules ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M06_Modules
-' DESCRIPTION : Builds the 8 specialized analytics module sheets that the user
-'               navigates between via the side rail.  Each module follows a
-'               common "Hero Header > KPI Strip > Charts > Drill Table" layout
-'               so the experience feels like Power BI tabs.
-'==============================================================================
-
-'==============================================================================
-'                          PUBLIC ORCHESTRATORS
 '==============================================================================
 Public Sub RefreshAllModules()
     BuildExecutiveView
@@ -675,17 +671,6 @@ End Sub
 
 '==============================================================================
 ' === SECTION: M07_Interaction ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M07_Interaction
-' DESCRIPTION : Interaction layer.  Navigation rail, command buttons, smart
-'               search, drill-through, theme switching, PDF export, email
-'               distribution, settings/logs scaffolding and login auth.
-'==============================================================================
-
-'==============================================================================
-'                          NAVIGATION RAIL
 '==============================================================================
 Public Sub WireNavigationEverywhere()
     Dim sheets As Variant, i As Long

@@ -5,11 +5,12 @@ Option Compare Text
 ' === TIOMP_Core - Part of TIOMP Dashboard ===
 ' Imports: M01_Builder, M02_DataEngine, M03_KpiEngine
 
-
 '==============================================================================
-' === SECTION: M01_Builder ===
+' MODULE-LEVEL DECLARATIONS (must be at top)
 '==============================================================================
 
+
+' --- declarations from M01_Builder ---
 '==============================================================================
 ' MODULE      : M01_Builder
 ' PROJECT     : Ticket Intelligence & Operations Monitoring Platform
@@ -94,6 +95,75 @@ Private mPerfStart As Double
 '==============================================================================
 
 ' One-click build of the entire platform.  Run this from a fresh workbook.
+
+' --- declarations from M02_DataEngine ---
+'==============================================================================
+' MODULE      : M02_DataEngine
+' DESCRIPTION : Auto CSV import, smart cleaning, normalization, derived columns
+'               and aggregation model. All transforms run on in-memory arrays
+'               for performance, then write back in single shot.
+'==============================================================================
+
+' Public column indices for Clean_Data (1-based, set in CleanData)
+Public Const CD_REPORTER          As Long = 1
+Public Const CD_REP_ID            As Long = 2
+Public Const CD_REP_DESIG         As Long = 3
+Public Const CD_REP_DEPT          As Long = 4
+Public Const CD_REP_DIV           As Long = 5
+Public Const CD_REP_SUBDIV        As Long = 6
+Public Const CD_REP_LOC           As Long = 7
+Public Const CD_REPORTED_AT       As Long = 8
+Public Const CD_ISSUE_ID          As Long = 9
+Public Const CD_ISSUE_TITLE       As Long = 10
+Public Const CD_ISSUE_TYPE        As Long = 11
+Public Const CD_SEVERITY          As Long = 12
+Public Const CD_STATUS            As Long = 13
+Public Const CD_ISSUE_LOC         As Long = 14
+Public Const CD_ISSUE_DESC        As Long = 15
+Public Const CD_RESOLVER          As Long = 16
+Public Const CD_RES_ID            As Long = 17
+Public Const CD_RES_DESIG         As Long = 18
+Public Const CD_RES_DEPT          As Long = 19
+Public Const CD_RES_DIV           As Long = 20
+Public Const CD_RES_SUBDIV        As Long = 21
+Public Const CD_RES_LOC           As Long = 22
+Public Const CD_RESOLVED_AT       As Long = 23
+Public Const CD_RES_REMARKS       As Long = 24
+' Derived columns
+Public Const CD_REPORT_DT         As Long = 25
+Public Const CD_RESOLVE_DT        As Long = 26
+Public Const CD_RES_HOURS         As Long = 27
+Public Const CD_RES_DAYS          As Long = 28
+Public Const CD_AGING_BUCKET      As Long = 29
+Public Const CD_NORM_SEVERITY     As Long = 30
+Public Const CD_NORM_STATUS       As Long = 31
+Public Const CD_NORM_ISSUE_TYPE   As Long = 32
+Public Const CD_SLA_TARGET        As Long = 33
+Public Const CD_SLA_STATUS        As Long = 34
+Public Const CD_IS_BREACH         As Long = 35
+Public Const CD_DOW               As Long = 36
+Public Const CD_HOUR              As Long = 37
+Public Const CD_DATE_KEY          As Long = 38
+Public Const CD_WEEK              As Long = 39
+Public Const CD_REPORT_BIZ        As Long = 40
+Public Const CD_CATEGORY          As Long = 41
+Public Const CD_REPEAT_FLAG       As Long = 42
+Public Const CD_IMPACT_SCORE      As Long = 43
+Public Const CD_RISK_SCORE        As Long = 44
+Public Const CD_AGE_HOURS         As Long = 45
+Public Const CD_TOTAL_COLS        As Long = 45
+
+'==============================================================================
+'                                IMPORT
+'==============================================================================
+
+'==============================================================================
+' PROCEDURES
+'==============================================================================
+
+'==============================================================================
+' === SECTION: M01_Builder ===
+'==============================================================================
 Public Sub BuildEnterpriseDashboard()
     On Error GoTo Fail
     PerfBegin
@@ -449,66 +519,6 @@ End Sub
 
 '==============================================================================
 ' === SECTION: M02_DataEngine ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M02_DataEngine
-' DESCRIPTION : Auto CSV import, smart cleaning, normalization, derived columns
-'               and aggregation model. All transforms run on in-memory arrays
-'               for performance, then write back in single shot.
-'==============================================================================
-
-' Public column indices for Clean_Data (1-based, set in CleanData)
-Public Const CD_REPORTER          As Long = 1
-Public Const CD_REP_ID            As Long = 2
-Public Const CD_REP_DESIG         As Long = 3
-Public Const CD_REP_DEPT          As Long = 4
-Public Const CD_REP_DIV           As Long = 5
-Public Const CD_REP_SUBDIV        As Long = 6
-Public Const CD_REP_LOC           As Long = 7
-Public Const CD_REPORTED_AT       As Long = 8
-Public Const CD_ISSUE_ID          As Long = 9
-Public Const CD_ISSUE_TITLE       As Long = 10
-Public Const CD_ISSUE_TYPE        As Long = 11
-Public Const CD_SEVERITY          As Long = 12
-Public Const CD_STATUS            As Long = 13
-Public Const CD_ISSUE_LOC         As Long = 14
-Public Const CD_ISSUE_DESC        As Long = 15
-Public Const CD_RESOLVER          As Long = 16
-Public Const CD_RES_ID            As Long = 17
-Public Const CD_RES_DESIG         As Long = 18
-Public Const CD_RES_DEPT          As Long = 19
-Public Const CD_RES_DIV           As Long = 20
-Public Const CD_RES_SUBDIV        As Long = 21
-Public Const CD_RES_LOC           As Long = 22
-Public Const CD_RESOLVED_AT       As Long = 23
-Public Const CD_RES_REMARKS       As Long = 24
-' Derived columns
-Public Const CD_REPORT_DT         As Long = 25
-Public Const CD_RESOLVE_DT        As Long = 26
-Public Const CD_RES_HOURS         As Long = 27
-Public Const CD_RES_DAYS          As Long = 28
-Public Const CD_AGING_BUCKET      As Long = 29
-Public Const CD_NORM_SEVERITY     As Long = 30
-Public Const CD_NORM_STATUS       As Long = 31
-Public Const CD_NORM_ISSUE_TYPE   As Long = 32
-Public Const CD_SLA_TARGET        As Long = 33
-Public Const CD_SLA_STATUS        As Long = 34
-Public Const CD_IS_BREACH         As Long = 35
-Public Const CD_DOW               As Long = 36
-Public Const CD_HOUR              As Long = 37
-Public Const CD_DATE_KEY          As Long = 38
-Public Const CD_WEEK              As Long = 39
-Public Const CD_REPORT_BIZ        As Long = 40
-Public Const CD_CATEGORY          As Long = 41
-Public Const CD_REPEAT_FLAG       As Long = 42
-Public Const CD_IMPACT_SCORE      As Long = 43
-Public Const CD_RISK_SCORE        As Long = 44
-Public Const CD_AGE_HOURS         As Long = 45
-Public Const CD_TOTAL_COLS        As Long = 45
-
-'==============================================================================
-'                                IMPORT
 '==============================================================================
 Public Sub ImportCsv()
     Dim path As String, ws As Worksheet
@@ -1393,21 +1403,6 @@ End Function
 
 '==============================================================================
 ' === SECTION: M03_KpiEngine ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M03_KpiEngine
-' DESCRIPTION : Computes enterprise KPIs and runs AI-style analytics.
-'               Outputs land on KPI_Engine sheet as a key/value store that the
-'               UI layer reads directly via GetKpi(name).
-'==============================================================================
-
-' KPI_Engine layout
-'   Col A: Key (string)            Col B: Value (variant)
-'   Col D: Section header          Col E..: AI tables (alerts, recos)
-
-'==============================================================================
-'                          PUBLIC GETTER
 '==============================================================================
 Public Function GetKpi(ByVal key As String) As Variant
     Dim ws As Worksheet, lr As Long, i As Long

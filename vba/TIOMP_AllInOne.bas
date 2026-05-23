@@ -4,21 +4,21 @@ Option Compare Text
 
 '==============================================================================
 ' TIOMP - Ticket Intelligence & Operations Monitoring Platform
-' SINGLE CONSOLIDATED VBA MODULE  (~4,700 lines)
-' 
-' SETUP (one-time, takes 2 minutes):
+' SINGLE CONSOLIDATED VBA MODULE
+'
+' SETUP:
 '   1. Save your workbook as TIOMP.xlsm next to Apps.csv
-'   2. Press Alt+F11 to open VBA editor
-'   3. Insert > Module
-'   4. Paste THIS ENTIRE FILE into the module
-'   5. Press Alt+F8, run BuildEnterpriseDashboard
+'   2. Press Alt+F11, Insert > Module
+'   3. Paste THIS ENTIRE FILE
+'   4. Press Alt+F8, run BuildEnterpriseDashboard
+'==============================================================================
+
+'==============================================================================
+' ALL MODULE-LEVEL DECLARATIONS (must be at top - VBA rule)
 '==============================================================================
 
 
-'==============================================================================
-' === SECTION: M01_Builder ===
-'==============================================================================
-
+' --- declarations from M01_Builder ---
 '==============================================================================
 ' MODULE      : M01_Builder
 ' PROJECT     : Ticket Intelligence & Operations Monitoring Platform
@@ -103,6 +103,95 @@ Private mPerfStart As Double
 '==============================================================================
 
 ' One-click build of the entire platform.  Run this from a fresh workbook.
+
+' --- declarations from M02_DataEngine ---
+'==============================================================================
+' MODULE      : M02_DataEngine
+' DESCRIPTION : Auto CSV import, smart cleaning, normalization, derived columns
+'               and aggregation model. All transforms run on in-memory arrays
+'               for performance, then write back in single shot.
+'==============================================================================
+
+' Public column indices for Clean_Data (1-based, set in CleanData)
+Public Const CD_REPORTER          As Long = 1
+Public Const CD_REP_ID            As Long = 2
+Public Const CD_REP_DESIG         As Long = 3
+Public Const CD_REP_DEPT          As Long = 4
+Public Const CD_REP_DIV           As Long = 5
+Public Const CD_REP_SUBDIV        As Long = 6
+Public Const CD_REP_LOC           As Long = 7
+Public Const CD_REPORTED_AT       As Long = 8
+Public Const CD_ISSUE_ID          As Long = 9
+Public Const CD_ISSUE_TITLE       As Long = 10
+Public Const CD_ISSUE_TYPE        As Long = 11
+Public Const CD_SEVERITY          As Long = 12
+Public Const CD_STATUS            As Long = 13
+Public Const CD_ISSUE_LOC         As Long = 14
+Public Const CD_ISSUE_DESC        As Long = 15
+Public Const CD_RESOLVER          As Long = 16
+Public Const CD_RES_ID            As Long = 17
+Public Const CD_RES_DESIG         As Long = 18
+Public Const CD_RES_DEPT          As Long = 19
+Public Const CD_RES_DIV           As Long = 20
+Public Const CD_RES_SUBDIV        As Long = 21
+Public Const CD_RES_LOC           As Long = 22
+Public Const CD_RESOLVED_AT       As Long = 23
+Public Const CD_RES_REMARKS       As Long = 24
+' Derived columns
+Public Const CD_REPORT_DT         As Long = 25
+Public Const CD_RESOLVE_DT        As Long = 26
+Public Const CD_RES_HOURS         As Long = 27
+Public Const CD_RES_DAYS          As Long = 28
+Public Const CD_AGING_BUCKET      As Long = 29
+Public Const CD_NORM_SEVERITY     As Long = 30
+Public Const CD_NORM_STATUS       As Long = 31
+Public Const CD_NORM_ISSUE_TYPE   As Long = 32
+Public Const CD_SLA_TARGET        As Long = 33
+Public Const CD_SLA_STATUS        As Long = 34
+Public Const CD_IS_BREACH         As Long = 35
+Public Const CD_DOW               As Long = 36
+Public Const CD_HOUR              As Long = 37
+Public Const CD_DATE_KEY          As Long = 38
+Public Const CD_WEEK              As Long = 39
+Public Const CD_REPORT_BIZ        As Long = 40
+Public Const CD_CATEGORY          As Long = 41
+Public Const CD_REPEAT_FLAG       As Long = 42
+Public Const CD_IMPACT_SCORE      As Long = 43
+Public Const CD_RISK_SCORE        As Long = 44
+Public Const CD_AGE_HOURS         As Long = 45
+Public Const CD_TOTAL_COLS        As Long = 45
+
+'==============================================================================
+'                                IMPORT
+'==============================================================================
+
+' --- declarations from M04_DashboardUI ---
+'==============================================================================
+' MODULE      : M04_DashboardUI
+' DESCRIPTION : Builds the executive Dashboard_Main page with premium dark NOC
+'               aesthetic: header bar, side navigation, KPI cards, AI feed,
+'               activity console and chart hosts. Uses Excel shapes for visual
+'               primitives (cards, panels, neon accents) and embedded charts.
+'==============================================================================
+
+' Dashboard layout grid (cells)
+Private Const G_TITLE_ROW   As Long = 1   ' header
+Private Const G_KPI_ROW     As Long = 4   ' kpi cards row anchor
+Private Const G_BODY_ROW    As Long = 11  ' body content begins
+Private Const G_NAV_COL     As Long = 1
+Private Const G_BODY_COL    As Long = 2
+
+'==============================================================================
+'                          PUBLIC ENTRY POINTS
+'==============================================================================
+
+'==============================================================================
+' ALL PROCEDURES (Subs and Functions)
+'==============================================================================
+
+'==============================================================================
+' === SECTION: M01_Builder ===
+'==============================================================================
 Public Sub BuildEnterpriseDashboard()
     On Error GoTo Fail
     PerfBegin
@@ -458,66 +547,6 @@ End Sub
 
 '==============================================================================
 ' === SECTION: M02_DataEngine ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M02_DataEngine
-' DESCRIPTION : Auto CSV import, smart cleaning, normalization, derived columns
-'               and aggregation model. All transforms run on in-memory arrays
-'               for performance, then write back in single shot.
-'==============================================================================
-
-' Public column indices for Clean_Data (1-based, set in CleanData)
-Public Const CD_REPORTER          As Long = 1
-Public Const CD_REP_ID            As Long = 2
-Public Const CD_REP_DESIG         As Long = 3
-Public Const CD_REP_DEPT          As Long = 4
-Public Const CD_REP_DIV           As Long = 5
-Public Const CD_REP_SUBDIV        As Long = 6
-Public Const CD_REP_LOC           As Long = 7
-Public Const CD_REPORTED_AT       As Long = 8
-Public Const CD_ISSUE_ID          As Long = 9
-Public Const CD_ISSUE_TITLE       As Long = 10
-Public Const CD_ISSUE_TYPE        As Long = 11
-Public Const CD_SEVERITY          As Long = 12
-Public Const CD_STATUS            As Long = 13
-Public Const CD_ISSUE_LOC         As Long = 14
-Public Const CD_ISSUE_DESC        As Long = 15
-Public Const CD_RESOLVER          As Long = 16
-Public Const CD_RES_ID            As Long = 17
-Public Const CD_RES_DESIG         As Long = 18
-Public Const CD_RES_DEPT          As Long = 19
-Public Const CD_RES_DIV           As Long = 20
-Public Const CD_RES_SUBDIV        As Long = 21
-Public Const CD_RES_LOC           As Long = 22
-Public Const CD_RESOLVED_AT       As Long = 23
-Public Const CD_RES_REMARKS       As Long = 24
-' Derived columns
-Public Const CD_REPORT_DT         As Long = 25
-Public Const CD_RESOLVE_DT        As Long = 26
-Public Const CD_RES_HOURS         As Long = 27
-Public Const CD_RES_DAYS          As Long = 28
-Public Const CD_AGING_BUCKET      As Long = 29
-Public Const CD_NORM_SEVERITY     As Long = 30
-Public Const CD_NORM_STATUS       As Long = 31
-Public Const CD_NORM_ISSUE_TYPE   As Long = 32
-Public Const CD_SLA_TARGET        As Long = 33
-Public Const CD_SLA_STATUS        As Long = 34
-Public Const CD_IS_BREACH         As Long = 35
-Public Const CD_DOW               As Long = 36
-Public Const CD_HOUR              As Long = 37
-Public Const CD_DATE_KEY          As Long = 38
-Public Const CD_WEEK              As Long = 39
-Public Const CD_REPORT_BIZ        As Long = 40
-Public Const CD_CATEGORY          As Long = 41
-Public Const CD_REPEAT_FLAG       As Long = 42
-Public Const CD_IMPACT_SCORE      As Long = 43
-Public Const CD_RISK_SCORE        As Long = 44
-Public Const CD_AGE_HOURS         As Long = 45
-Public Const CD_TOTAL_COLS        As Long = 45
-
-'==============================================================================
-'                                IMPORT
 '==============================================================================
 Public Sub ImportCsv()
     Dim path As String, ws As Worksheet
@@ -1403,21 +1432,6 @@ End Function
 '==============================================================================
 ' === SECTION: M03_KpiEngine ===
 '==============================================================================
-
-'==============================================================================
-' MODULE      : M03_KpiEngine
-' DESCRIPTION : Computes enterprise KPIs and runs AI-style analytics.
-'               Outputs land on KPI_Engine sheet as a key/value store that the
-'               UI layer reads directly via GetKpi(name).
-'==============================================================================
-
-' KPI_Engine layout
-'   Col A: Key (string)            Col B: Value (variant)
-'   Col D: Section header          Col E..: AI tables (alerts, recos)
-
-'==============================================================================
-'                          PUBLIC GETTER
-'==============================================================================
 Public Function GetKpi(ByVal key As String) As Variant
     Dim ws As Worksheet, lr As Long, i As Long
     Set ws = ThisWorkbook.Worksheets(SHT_KPI)
@@ -2046,25 +2060,6 @@ End Sub
 
 '==============================================================================
 ' === SECTION: M04_DashboardUI ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M04_DashboardUI
-' DESCRIPTION : Builds the executive Dashboard_Main page with premium dark NOC
-'               aesthetic: header bar, side navigation, KPI cards, AI feed,
-'               activity console and chart hosts. Uses Excel shapes for visual
-'               primitives (cards, panels, neon accents) and embedded charts.
-'==============================================================================
-
-' Dashboard layout grid (cells)
-Private Const G_TITLE_ROW   As Long = 1   ' header
-Private Const G_KPI_ROW     As Long = 4   ' kpi cards row anchor
-Private Const G_BODY_ROW    As Long = 11  ' body content begins
-Private Const G_NAV_COL     As Long = 1
-Private Const G_BODY_COL    As Long = 2
-
-'==============================================================================
-'                          PUBLIC ENTRY POINTS
 '==============================================================================
 Public Sub BuildDashboardMain()
     Dim ws As Worksheet
@@ -2732,17 +2727,6 @@ End Function
 '==============================================================================
 ' === SECTION: M05_Charts ===
 '==============================================================================
-
-'==============================================================================
-' MODULE      : M05_Charts
-' DESCRIPTION : Chart Rendering Engine.  All charts read from named blocks on
-'               the Data_Model sheet (located by section header).  Every chart
-'               is restyled to dark NOC aesthetic.
-'==============================================================================
-
-'==============================================================================
-'                          PUBLIC API
-'==============================================================================
 Public Sub RefreshAllCharts()
     ' Rebuild only the embedded chart objects on Dashboard_Main and module sheets
     ' Layout itself is preserved.  This is a thin wrapper used by RefreshAll.
@@ -3384,18 +3368,6 @@ End Function
 
 '==============================================================================
 ' === SECTION: M06_Modules ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M06_Modules
-' DESCRIPTION : Builds the 8 specialized analytics module sheets that the user
-'               navigates between via the side rail.  Each module follows a
-'               common "Hero Header > KPI Strip > Charts > Drill Table" layout
-'               so the experience feels like Power BI tabs.
-'==============================================================================
-
-'==============================================================================
-'                          PUBLIC ORCHESTRATORS
 '==============================================================================
 Public Sub RefreshAllModules()
     BuildExecutiveView
@@ -4051,17 +4023,6 @@ End Sub
 
 '==============================================================================
 ' === SECTION: M07_Interaction ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M07_Interaction
-' DESCRIPTION : Interaction layer.  Navigation rail, command buttons, smart
-'               search, drill-through, theme switching, PDF export, email
-'               distribution, settings/logs scaffolding and login auth.
-'==============================================================================
-
-'==============================================================================
-'                          NAVIGATION RAIL
 '==============================================================================
 Public Sub WireNavigationEverywhere()
     Dim sheets As Variant, i As Long

@@ -5,11 +5,12 @@ Option Compare Text
 ' === TIOMP_UI - Part of TIOMP Dashboard ===
 ' Imports: M04_DashboardUI, M05_Charts
 
-
 '==============================================================================
-' === SECTION: M04_DashboardUI ===
+' MODULE-LEVEL DECLARATIONS (must be at top)
 '==============================================================================
 
+
+' --- declarations from M04_DashboardUI ---
 '==============================================================================
 ' MODULE      : M04_DashboardUI
 ' DESCRIPTION : Builds the executive Dashboard_Main page with premium dark NOC
@@ -27,6 +28,14 @@ Private Const G_BODY_COL    As Long = 2
 
 '==============================================================================
 '                          PUBLIC ENTRY POINTS
+'==============================================================================
+
+'==============================================================================
+' PROCEDURES
+'==============================================================================
+
+'==============================================================================
+' === SECTION: M04_DashboardUI ===
 '==============================================================================
 Public Sub BuildDashboardMain()
     Dim ws As Worksheet
@@ -693,17 +702,6 @@ End Function
 
 '==============================================================================
 ' === SECTION: M05_Charts ===
-'==============================================================================
-
-'==============================================================================
-' MODULE      : M05_Charts
-' DESCRIPTION : Chart Rendering Engine.  All charts read from named blocks on
-'               the Data_Model sheet (located by section header).  Every chart
-'               is restyled to dark NOC aesthetic.
-'==============================================================================
-
-'==============================================================================
-'                          PUBLIC API
 '==============================================================================
 Public Sub RefreshAllCharts()
     ' Rebuild only the embedded chart objects on Dashboard_Main and module sheets
